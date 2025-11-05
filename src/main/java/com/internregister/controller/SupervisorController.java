@@ -1,9 +1,9 @@
 package com.internregister.controller;
 
 import com.internregister.entity.Supervisor;
+import com.internregister.entity.User;
 import com.internregister.dto.SupervisorRequest;
 import com.internregister.service.SupervisorService;
-import com.internregister.entity.User;
 import com.internregister.repository.UserRepository;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
@@ -41,8 +41,13 @@ public class SupervisorController {
     }
 
     @PostMapping
-    public Supervisor createSupervisor(@RequestBody Supervisor supervisor) {
-        return supervisorService.saveSupervisor(supervisor);
+    public ResponseEntity<?> createSupervisor(@Valid @RequestBody SupervisorRequest request) {
+        try {
+            Supervisor supervisor = supervisorService.createSupervisor(request);
+            return ResponseEntity.ok(supervisor);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")
@@ -79,7 +84,12 @@ public class SupervisorController {
     }
 
     @DeleteMapping("/{id}")
-    public void deleteSupervisor(@PathVariable Long id) {
-        supervisorService.deleteSupervisor(id);
+    public ResponseEntity<?> deleteSupervisor(@PathVariable Long id) {
+        try {
+            supervisorService.deleteSupervisor(id);
+            return ResponseEntity.ok().body(java.util.Map.of("message", "Supervisor deleted successfully"));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
     }
 }

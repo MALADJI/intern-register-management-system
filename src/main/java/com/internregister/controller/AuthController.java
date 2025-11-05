@@ -15,6 +15,7 @@ import com.internregister.service.UserService;
 import com.internregister.service.EmailVerificationService;
 import com.internregister.security.PasswordValidator;
 import com.internregister.security.RateLimitingService;
+import com.internregister.service.PasswordResetService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,12 +40,14 @@ public class AuthController {
     private final EmailVerificationService emailVerificationService;
     private final PasswordValidator passwordValidator;
     private final RateLimitingService rateLimitingService;
+    private final PasswordResetService passwordResetService;
 
     public AuthController(UserService userService, JwtTokenProvider jwtTokenProvider, UserRepository userRepository,
                           InternRepository internRepository, AdminRepository adminRepository,
                           DepartmentRepository departmentRepository,
                           SupervisorRepository supervisorRepository, EmailVerificationService emailVerificationService,
-                          PasswordValidator passwordValidator, RateLimitingService rateLimitingService) {
+                          PasswordValidator passwordValidator, RateLimitingService rateLimitingService,
+                          PasswordResetService passwordResetService) {
         this.userService = userService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.userRepository = userRepository;
@@ -55,6 +58,7 @@ public class AuthController {
         this.emailVerificationService = emailVerificationService;
         this.passwordValidator = passwordValidator;
         this.rateLimitingService = rateLimitingService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/login")
@@ -92,6 +96,7 @@ public class AuthController {
         User user = userService.findByUsernameOrEmail(username.trim()).orElse(null);
         if (user == null) {
             System.out.println("✗ Login attempt failed: User not found - " + username.trim());
+            System.out.println("  Searched for username/email: " + username.trim());
             rateLimitingService.recordFailedAttempt(clientIp);
             return ResponseEntity.status(401).body(Map.of(
                 "error", "Invalid credentials",
@@ -295,6 +300,7 @@ public class AuthController {
             user.setRole(role);
             
             User savedUser = userService.saveUser(user);
+            System.out.println("✓ Password hashed and saved for user: " + savedUser.getUsername());
             System.out.println("✓ New user registered and saved to database:");
             System.out.println("  Username: " + savedUser.getUsername());
             System.out.println("  Role: " + savedUser.getRole());

@@ -29,6 +29,10 @@ public class UserService {
     public Optional<User> findByUsernameOrEmail(String identifier) {
         return userRepository.findByUsernameOrEmail(identifier);
     }
+    
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
+    }
 
     public boolean checkPassword(String rawPassword, String encodedPassword) {
         return passwordEncoder.matches(rawPassword, encodedPassword);

@@ -2,6 +2,7 @@ package com.internregister.entity;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.EqualsAndHashCode;
@@ -40,9 +41,9 @@ public class LeaveRequest {
 
     private String attachmentPath;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "intern_id")
     @ToString.Exclude
-    @JsonBackReference
+    @JsonIgnoreProperties({"leaveRequests", "attendanceRecords", "department", "supervisor"})
     private Intern intern;
 }

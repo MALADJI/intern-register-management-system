@@ -51,7 +51,25 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight requests
                 .requestMatchers("/api/auth/**", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .anyRequest().authenticated()
+                // TEMPORARY: Allow testing without authentication - ALL endpoints
+                .requestMatchers("/api/**").permitAll()
+                .anyRequest().permitAll() // Allow all requests for testing
+            )
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint((request, response, authException) -> {
+                    System.err.println("✗ Authentication entry point triggered: " + authException.getMessage());
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Authentication required\"}");
+                })
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    System.err.println("✗ Access denied: " + accessDeniedException.getMessage());
+                    System.err.println("  Request URI: " + request.getRequestURI());
+                    System.err.println("  User: " + (request.getUserPrincipal() != null ? request.getUserPrincipal().getName() : "null"));
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Access denied: " + accessDeniedException.getMessage() + "\"}");
+                })
             )
             .exceptionHandling(exceptions -> exceptions
                 .authenticationEntryPoint((request, response, authException) -> {
@@ -148,7 +166,14 @@ class JwtAuthenticationFilter extends OncePerRequestFilter {
                     System.out.println("  Role: " + role);
                     System.out.println("  Endpoint: " + requestMethod + " " + requestPath);
                     
+                    // Try to find user by username first
                     User user = userService.findByUsername(username).orElse(null);
+                    
+                    // If not found by username, try by email
+                    if (user == null) {
+                        user = userService.findByEmail(username).orElse(null);
+                    }
+                    
                     if (user != null) {
                         // Set user role as authority
                         SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);

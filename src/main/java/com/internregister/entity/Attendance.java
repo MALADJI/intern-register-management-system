@@ -26,6 +26,8 @@ public class Attendance {
     @Enumerated(EnumType.STRING)
     private AttendanceStatus status;
     private String location;
+    private Double latitude;  // Geolocation latitude
+    private Double longitude; // Geolocation longitude
     private String signature;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;

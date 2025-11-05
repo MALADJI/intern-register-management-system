@@ -33,6 +33,8 @@ public class AttendanceController {
         try {
             Long internId = null;
             String location = null;
+            Double latitude = null;
+            Double longitude = null;
             
             // Handle both Integer and Long for internId (JSON numbers can be parsed as Integer)
             Object internIdObj = request.get("internId");
@@ -51,11 +53,38 @@ public class AttendanceController {
                 location = locationObj.toString();
             }
             
+            // Get geolocation coordinates
+            Object latObj = request.get("latitude");
+            if (latObj != null) {
+                if (latObj instanceof Number) {
+                    latitude = ((Number) latObj).doubleValue();
+                } else if (latObj instanceof String) {
+                    try {
+                        latitude = Double.parseDouble((String) latObj);
+                    } catch (NumberFormatException e) {
+                        // Ignore invalid latitude
+                    }
+                }
+            }
+            
+            Object lngObj = request.get("longitude");
+            if (lngObj != null) {
+                if (lngObj instanceof Number) {
+                    longitude = ((Number) lngObj).doubleValue();
+                } else if (lngObj instanceof String) {
+                    try {
+                        longitude = Double.parseDouble((String) lngObj);
+                    } catch (NumberFormatException e) {
+                        // Ignore invalid longitude
+                    }
+                }
+            }
+            
             if (internId == null) {
                 return ResponseEntity.badRequest().body(Map.of("error", "internId is required"));
             }
             
-            Attendance attendance = attendanceService.signIn(internId, location);
+            Attendance attendance = attendanceService.signIn(internId, location, latitude, longitude);
             return ResponseEntity.ok(attendance);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -63,9 +92,47 @@ public class AttendanceController {
     }
 
     @PutMapping("/signout/{attendanceId}")
-    public ResponseEntity<?> signOut(@PathVariable Long attendanceId) {
+    public ResponseEntity<?> signOut(@PathVariable Long attendanceId, @RequestBody(required = false) Map<String, Object> request) {
         try {
-            Attendance attendance = attendanceService.signOut(attendanceId);
+            Double latitude = null;
+            Double longitude = null;
+            String location = null;
+            
+            // Get geolocation and location from request body if provided
+            if (request != null) {
+                Object locationObj = request.get("location");
+                if (locationObj != null) {
+                    location = locationObj.toString();
+                }
+                
+                Object latObj = request.get("latitude");
+                if (latObj != null) {
+                    if (latObj instanceof Number) {
+                        latitude = ((Number) latObj).doubleValue();
+                    } else if (latObj instanceof String) {
+                        try {
+                            latitude = Double.parseDouble((String) latObj);
+                        } catch (NumberFormatException e) {
+                            // Ignore invalid latitude
+                        }
+                    }
+                }
+                
+                Object lngObj = request.get("longitude");
+                if (lngObj != null) {
+                    if (lngObj instanceof Number) {
+                        longitude = ((Number) lngObj).doubleValue();
+                    } else if (lngObj instanceof String) {
+                        try {
+                            longitude = Double.parseDouble((String) lngObj);
+                        } catch (NumberFormatException e) {
+                            // Ignore invalid longitude
+                        }
+                    }
+                }
+            }
+            
+            Attendance attendance = attendanceService.signOut(attendanceId, location, latitude, longitude);
             return ResponseEntity.ok(attendance);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

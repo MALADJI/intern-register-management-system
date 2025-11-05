@@ -4,11 +4,15 @@ import com.internregister.entity.User;
 import com.internregister.entity.Intern;
 import com.internregister.entity.Supervisor;
 import com.internregister.entity.Admin;
+import com.internregister.entity.NotificationPreference;
 import com.internregister.repository.UserRepository;
 import com.internregister.repository.InternRepository;
 import com.internregister.repository.SupervisorRepository;
 import com.internregister.repository.AdminRepository;
 import com.internregister.service.UserService;
+import com.internregister.service.AuthHelperService;
+import com.internregister.service.NotificationPreferenceService;
+import com.internregister.service.TermsAcceptanceService;
 import com.internregister.security.PasswordValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +46,15 @@ public class SettingsController {
     
     @Autowired
     private PasswordValidator passwordValidator;
+    
+    @Autowired(required = false)
+    private AuthHelperService authHelperService;
+    
+    @Autowired(required = false)
+    private NotificationPreferenceService notificationPreferenceService;
+    
+    @Autowired(required = false)
+    private TermsAcceptanceService termsAcceptanceService;
     
     // Get current user profile with full details
     @GetMapping("/profile")
@@ -228,5 +241,91 @@ public class SettingsController {
         
         return ResponseEntity.ok(Map.of("message", "Password changed successfully"));
     }
-}
+    
+    // Notification preferences endpoints (if services are available)
+    @GetMapping("/notifications")
+    public ResponseEntity<?> getNotificationPreferences() {
+        if (authHelperService == null || notificationPreferenceService == null) {
+            return ResponseEntity.status(501).body(Map.of("error", "Notification preferences not available"));
+        }
+        var userOpt = authHelperService.getCurrentUser();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+        User user = userOpt.get();
+        NotificationPreference pref = notificationPreferenceService.getOrCreateFor(user);
+        return ResponseEntity.ok(Map.of(
+                "emailLeaveUpdates", pref.isEmailLeaveUpdates(),
+                "emailAttendanceAlerts", pref.isEmailAttendanceAlerts(),
+                "frequency", pref.getFrequency().name()
+        ));
+    }
 
+    @PutMapping("/notifications")
+    public ResponseEntity<?> updateNotificationPreferences(@RequestBody Map<String, Object> body) {
+        if (authHelperService == null || notificationPreferenceService == null) {
+            return ResponseEntity.status(501).body(Map.of("error", "Notification preferences not available"));
+        }
+        var userOpt = authHelperService.getCurrentUser();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+        User user = userOpt.get();
+
+        NotificationPreference updated = new NotificationPreference();
+        if (body.containsKey("emailLeaveUpdates")) {
+            updated.setEmailLeaveUpdates(Boolean.TRUE.equals(body.get("emailLeaveUpdates")) || Boolean.TRUE.equals(Boolean.valueOf(String.valueOf(body.get("emailLeaveUpdates")))));
+        }
+        if (body.containsKey("emailAttendanceAlerts")) {
+            updated.setEmailAttendanceAlerts(Boolean.TRUE.equals(body.get("emailAttendanceAlerts")) || Boolean.TRUE.equals(Boolean.valueOf(String.valueOf(body.get("emailAttendanceAlerts")))));
+        }
+        if (body.containsKey("frequency")) {
+            try {
+                updated.setFrequency(NotificationPreference.Frequency.valueOf(String.valueOf(body.get("frequency")).toUpperCase()));
+            } catch (Exception ignored) {}
+        }
+
+        NotificationPreference saved = notificationPreferenceService.update(user, updated);
+        return ResponseEntity.ok(Map.of(
+                "emailLeaveUpdates", saved.isEmailLeaveUpdates(),
+                "emailAttendanceAlerts", saved.isEmailAttendanceAlerts(),
+                "frequency", saved.getFrequency().name()
+        ));
+    }
+
+    @GetMapping("/terms")
+    public ResponseEntity<?> getTermsStatus() {
+        if (authHelperService == null || termsAcceptanceService == null) {
+            return ResponseEntity.status(501).body(Map.of("error", "Terms acceptance not available"));
+        }
+        var userOpt = authHelperService.getCurrentUser();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+        var ta = termsAcceptanceService.getOrCreate(userOpt.get());
+        return ResponseEntity.ok(Map.of(
+                "accepted", ta.isAccepted(),
+                "acceptedAt", ta.getAcceptedAt(),
+                "version", ta.getVersion()
+        ));
+    }
+
+    @PutMapping("/terms")
+    public ResponseEntity<?> acceptTerms(@RequestBody Map<String, String> body, @RequestHeader(value = "X-Forwarded-For", required = false) String xff, @RequestHeader(value = "X-Real-IP", required = false) String xri) {
+        if (authHelperService == null || termsAcceptanceService == null) {
+            return ResponseEntity.status(501).body(Map.of("error", "Terms acceptance not available"));
+        }
+        var userOpt = authHelperService.getCurrentUser();
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
+        String version = body != null ? body.getOrDefault("version", "v1") : "v1";
+        String ip = xff != null && !xff.isBlank() ? xff.split(",")[0].trim() : (xri != null ? xri : null);
+        var saved = termsAcceptanceService.accept(userOpt.get(), version, ip);
+        return ResponseEntity.ok(Map.of(
+                "accepted", saved.isAccepted(),
+                "acceptedAt", saved.getAcceptedAt(),
+                "version", saved.getVersion()
+        ));
+    }
+}
