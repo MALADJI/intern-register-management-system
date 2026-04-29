@@ -26,15 +26,20 @@ public class Attendance {
     @Enumerated(EnumType.STRING)
     private AttendanceStatus status;
     private String location;
-    private Double latitude;  // Geolocation latitude
-    private Double longitude; // Geolocation longitude
+    private Double latitude;
+    private Double longitude;
+
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String signature;
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
         createdAt = java.time.LocalDateTime.now();
     }
+
     @PreUpdate
     protected void onUpdate() {
         updatedAt = java.time.LocalDateTime.now();

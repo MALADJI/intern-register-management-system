@@ -27,6 +27,8 @@ public class Supervisor {
     @JoinColumn(name = "department_id")
     private Department department;
 
+    private String field;
+
     @OneToMany(mappedBy = "supervisor", cascade = CascadeType.ALL)
     @ToString.Exclude
     @JsonIgnoreProperties({"department", "supervisor", "attendanceRecords", "leaveRequests"})

@@ -18,20 +18,15 @@ public class UserService {
     }
 
     public User saveUser(User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
 
     public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username);
+        return userRepository.findByUsername(username).stream().findFirst();
     }
-    
-    public Optional<User> findByUsernameOrEmail(String identifier) {
-        return userRepository.findByUsernameOrEmail(identifier);
-    }
-    
+
     public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+        return userRepository.findByEmail(email).stream().findFirst();
     }
 
     public boolean checkPassword(String rawPassword, String encodedPassword) {

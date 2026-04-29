@@ -7,12 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface VerificationCodeRepository extends JpaRepository<VerificationCode, Long> {
-    Optional<VerificationCode> findByEmailAndCode(String email, String code);
-    Optional<VerificationCode> findByEmail(String email);
+    List<VerificationCode> findByEmailAndCode(String email, String code);
+    List<VerificationCode> findByEmail(String email);
     
     @Modifying
     @Query("DELETE FROM VerificationCode v WHERE v.expiresAt < ?1")

@@ -23,13 +23,21 @@ public class User {
     @Column(nullable = false)
     private Role role;
 
+    @Column(columnDefinition = "TEXT")
+    private String signature;
+
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    private LocalDateTime lastLoginAt;
+
+    private String currentSessionId;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Profile fields
-    private String name;
-    private String phone;
-    private String avatarUrl;
+    @Column(nullable = false)
+    private Boolean requiresPasswordChange = false;
 
     @PrePersist
     protected void onCreate() {
@@ -42,7 +50,7 @@ public class User {
     }
 
     public enum Role {
-        ADMIN, SUPERVISOR, INTERN
+        SUPER_ADMIN, ADMIN, SUPERVISOR, INTERN
     }
 
     public String getUsername() {
@@ -101,12 +109,43 @@ public class User {
         this.updatedAt = updatedAt;
     }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public String getSignature() {
+        return signature;
+    }
 
-    public String getPhone() { return phone; }
-    public void setPhone(String phone) { this.phone = phone; }
+    public void setSignature(String signature) {
+        this.signature = signature;
+    }
 
-    public String getAvatarUrl() { return avatarUrl; }
-    public void setAvatarUrl(String avatarUrl) { this.avatarUrl = avatarUrl; }
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
+    }
+
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
+    }
+
+    public String getCurrentSessionId() {
+        return currentSessionId;
+    }
+
+    public void setCurrentSessionId(String currentSessionId) {
+        this.currentSessionId = currentSessionId;
+    }
+
+    public Boolean getRequiresPasswordChange() {
+        return requiresPasswordChange;
+    }
+
+    public void setRequiresPasswordChange(Boolean requiresPasswordChange) {
+        this.requiresPasswordChange = requiresPasswordChange;
+    }
 }

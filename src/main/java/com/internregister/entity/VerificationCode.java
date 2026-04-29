@@ -25,9 +25,9 @@ public class VerificationCode {
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
-        // Code expires in 24 hours (fallback if not set)
+        // Code expires in 1 minute
         if (expiresAt == null) {
-            expiresAt = LocalDateTime.now().plusHours(24);
+            expiresAt = LocalDateTime.now().plusMinutes(1);
         }
     }
     

@@ -23,6 +23,10 @@ public class AdminService {
         return adminRepository.save(admin);
     }
 
+    public Admin getAdminById(Long id) {
+        return adminRepository.findById(id).orElse(null);
+    }
+
     public void deleteAdmin(Long id) {
         adminRepository.deleteById(id);
     }

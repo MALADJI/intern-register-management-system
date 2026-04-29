@@ -1,6 +1,5 @@
 package com.internregister.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -8,105 +7,70 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class EmailService {
-    
-    @Autowired(required = false)
-    private JavaMailSender mailSender;
-    
-    @Value("${mail.from.address:noreply@univen.ac.za}")
+
+    private final JavaMailSender mailSender;
+
+    @Value("${mail.from.address}")
     private String fromAddress;
-    
-    @Value("${mail.enabled:false}")
+
+    @Value("${mail.enabled:true}")
     private boolean mailEnabled;
-    
-    public void sendVerificationCode(String toEmail, String code) {
-        String subject = "Verification Code - Intern Register System";
-        String body = String.format(
-            "Hello,\n\n" +
-            "Your verification code is: %s\n\n" +
-            "This code will expire in 24 hours.\n\n" +
-            "If you did not request this code, please ignore this email.\n\n" +
-            "Best regards,\n" +
-            "Intern Register System",
-            code
-        );
-        
-        if (mailEnabled && mailSender != null) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromAddress);
-                message.setTo(toEmail);
-                message.setSubject(subject);
-                message.setText(body);
-                mailSender.send(message);
-                System.out.println("===========================================");
-                System.out.println("✓ EMAIL SENT SUCCESSFULLY");
-                System.out.println("  To: " + toEmail);
-                System.out.println("  Code: " + code);
-                System.out.println("===========================================");
-            } catch (Exception e) {
-                System.err.println("✗ FAILED TO SEND EMAIL: " + e.getMessage());
-                System.out.println("===========================================");
-                System.out.println("FALLING BACK TO CONSOLE OUTPUT");
-                System.out.println("VERIFICATION CODE FOR: " + toEmail);
-                System.out.println("CODE: " + code);
-                System.out.println("===========================================");
-            }
-        } else {
-            // Fallback to console if email is not configured
-            System.out.println("===========================================");
-            System.out.println("EMAIL NOT CONFIGURED - CODE DISPLAYED BELOW");
-            System.out.println("To enable email, configure SMTP in application.properties");
-            System.out.println("===========================================");
-            System.out.println("VERIFICATION CODE FOR: " + toEmail);
-            System.out.println("CODE: " + code);
-            System.out.println("===========================================");
-        }
+
+    @Value("${app.system.url}")
+    private String systemUrl;
+
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
     }
-    
-    public void sendPasswordResetCode(String toEmail, String code) {
-        String subject = "Password Reset Code - Intern Register System";
-        String body = String.format(
-            "Hello,\n\n" +
-            "You requested to reset your password.\n\n" +
-            "Your verification code is: %s\n\n" +
-            "This code will expire in 24 hours.\n\n" +
-            "If you did not request a password reset, please ignore this email.\n\n" +
-            "Best regards,\n" +
-            "Intern Register System",
-            code
-        );
-        
-        if (mailEnabled && mailSender != null) {
-            try {
-                SimpleMailMessage message = new SimpleMailMessage();
-                message.setFrom(fromAddress);
-                message.setTo(toEmail);
-                message.setSubject(subject);
-                message.setText(body);
-                mailSender.send(message);
-                System.out.println("===========================================");
-                System.out.println("✓ PASSWORD RESET EMAIL SENT SUCCESSFULLY");
-                System.out.println("  To: " + toEmail);
-                System.out.println("  Code: " + code);
-                System.out.println("===========================================");
-            } catch (Exception e) {
-                System.err.println("✗ FAILED TO SEND EMAIL: " + e.getMessage());
-                System.out.println("===========================================");
-                System.out.println("FALLING BACK TO CONSOLE OUTPUT");
-                System.out.println("PASSWORD RESET CODE FOR: " + toEmail);
-                System.out.println("CODE: " + code);
-                System.out.println("===========================================");
-            }
-        } else {
-            // Fallback to console if email is not configured
+
+    public void sendInternInvite(String email, String name, String password) {
+        String defaultMessage = String.format(
+                "You have been successfully registered as an intern in the Intern Register System.\n\n" +
+                        "To access the system, please follow the link below:\n" +
+                        "🔗 %s\n\n" +
+                        "Your login credentials are:\n" +
+                        "📧 Username: %s\n" +
+                        "🔑 Password: %s\n\n" +
+                        "⚠️ IMPORTANT: For security reasons, please log in and change your password immediately after your first login.",
+                systemUrl, email, password);
+        sendInternInviteWithCustomMessage(email, name, defaultMessage);
+    }
+
+    public void sendInternInviteWithCustomMessage(String email, String name, String messageContent) {
+        String subject = "Welcome to the Intern Register System - Action Required";
+        String fullMessage = String.format(
+                "Dear %s,\n\n" +
+                        "%s\n\n" +
+                        "Best regards,\n" +
+                        "Intern Register System Team",
+                name, messageContent);
+
+        sendSimpleMessage(email, subject, fullMessage);
+    }
+
+    private void sendSimpleMessage(String to, String subject, String text) {
+        if (!mailEnabled) {
             System.out.println("===========================================");
-            System.out.println("EMAIL NOT CONFIGURED - CODE DISPLAYED BELOW");
-            System.out.println("To enable email, configure SMTP in application.properties");
+            System.out.println("EMAIL SIMULATION (mail.enabled=false)");
+            System.out.println("TO: " + to);
+            System.out.println("SUBJECT: " + subject);
+            System.out.println("BODY:\n" + text);
             System.out.println("===========================================");
-            System.out.println("PASSWORD RESET CODE FOR: " + toEmail);
-            System.out.println("CODE: " + code);
-            System.out.println("===========================================");
+            return;
+        }
+
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromAddress);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            mailSender.send(message);
+            System.out.println("✓ Invitation email sent to: " + to);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send email to " + to + ": " + e.getMessage());
+            // Important: We don't throw an exception here because we don't want to
+            // roll back the entire import just because one email failed.
         }
     }
 }
-

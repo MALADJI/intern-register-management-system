@@ -1,6 +1,7 @@
 package com.internregister.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.EqualsAndHashCode;
@@ -19,6 +20,14 @@ public class Admin {
 
     private String name;
     private String email;
+    
+    private Boolean active = true;
+    
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    @JsonIgnoreProperties({"interns", "supervisors"})
+    private Department department;
+    
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
     @PrePersist

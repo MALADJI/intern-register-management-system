@@ -13,109 +13,101 @@ import java.util.Random;
 
 @Service
 public class EmailVerificationService {
-    
+
     @Autowired
     private VerificationCodeRepository verificationCodeRepository;
-    
-    @Autowired
-    private EmailService emailService;
-    
+
+    @org.springframework.beans.factory.annotation.Value("${verification.code.expiration.minutes:1}")
+    private int expirationMinutes;
+
     private final Random random = new Random();
-    
+
     // Store verification code for email in database
     @Transactional
     public String generateAndStoreCode(String email) {
-        return generateAndStoreCode(email, false);
-    }
-    
-    // Store verification code for email in database (with option for password reset)
-    @Transactional
-    public String generateAndStoreCode(String email, boolean isPasswordReset) {
         // Delete existing code for this email if any
         verificationCodeRepository.deleteByEmail(email);
-        
+
         // Generate 6-digit code
         String code = String.format("%06d", random.nextInt(1000000));
-        
+
         // Create and save verification code entity
         VerificationCode verificationCode = new VerificationCode();
         verificationCode.setEmail(email);
         verificationCode.setCode(code);
-        verificationCode.setExpiresAt(LocalDateTime.now().plusHours(24)); // Expires in 24 hours
-        
+        verificationCode.setExpiresAt(LocalDateTime.now().plusMinutes(expirationMinutes)); // Expires in configured
+                                                                                           // minutes (default 1)
+
         verificationCodeRepository.save(verificationCode);
-        
-        // Send email with verification code
-        if (isPasswordReset) {
-            emailService.sendPasswordResetCode(email, code);
-        } else {
-            emailService.sendVerificationCode(email, code);
-        }
-        
+
+        // Log the code (in production, send actual email)
+        System.out.println("===========================================");
+        System.out.println("VERIFICATION CODE FOR: " + email);
+        System.out.println("CODE: " + code);
+        System.out.println("CODE SAVED TO DATABASE");
+        System.out.println("===========================================");
+        System.out.println("NOTE: In production, this code would be sent via email.");
+        System.out.println("For now, check the console/logs for the code.");
+        System.out.println("===========================================");
+
         return code;
     }
-    
+
     // Verify code from database
     @Transactional
     public boolean verifyCode(String email, String code) {
-        return verifyCode(email, code, true); // Default: delete after verification
-    }
-    
-    // Verify code from database (with option to keep code for reuse)
-    @Transactional
-    public boolean verifyCode(String email, String code, boolean deleteAfterVerification) {
-        System.out.println("===========================================");
-        System.out.println("VERIFYING CODE FOR: " + email);
-        System.out.println("CODE PROVIDED: " + code);
-        
-        Optional<VerificationCode> verificationCodeOpt = verificationCodeRepository.findByEmailAndCode(email, code);
-        
+        System.out.println("🔍 Verifying code for email: " + email);
+        System.out.println("🔍 Code to verify: '" + code + "' (length: " + code.length() + ")");
+
+        Optional<VerificationCode> verificationCodeOpt = verificationCodeRepository.findByEmailAndCode(email, code).stream().findFirst();
+
         if (verificationCodeOpt.isEmpty()) {
-            System.out.println("✗ CODE VERIFICATION FAILED: No code found for email: " + email);
-            System.out.println("  Possible reasons:");
-            System.out.println("  1. Code was never sent - call /api/auth/send-verification-code first");
-            System.out.println("  2. Code doesn't match");
-            System.out.println("  3. Email doesn't match");
-            System.out.println("  4. Code was already used (if one-time use)");
-            System.out.println("===========================================");
+            System.out.println("❌ No verification code found in database for email: " + email);
+            // Try to find by email only to see if there's a code with different value
+            Optional<VerificationCode> byEmailOnly = verificationCodeRepository.findByEmail(email).stream().findFirst();
+            if (byEmailOnly.isPresent()) {
+                VerificationCode found = byEmailOnly.get();
+                System.out.println("⚠️ Found code in DB for this email, but value doesn't match:");
+                System.out.println("   DB code: '" + found.getCode() + "' (length: " + found.getCode().length() + ")");
+                System.out.println("   Provided code: '" + code + "' (length: " + code.length() + ")");
+                System.out.println("   Codes match: " + found.getCode().equals(code));
+                System.out.println("   Code expired: " + found.isExpired());
+            } else {
+                System.out.println("⚠️ No verification code found at all for email: " + email);
+            }
             return false;
         }
-        
+
         VerificationCode verificationCode = verificationCodeOpt.get();
-        
+        System.out.println("✅ Found verification code in database");
+        System.out.println("   Code: '" + verificationCode.getCode() + "'");
+        System.out.println("   Expires at: " + verificationCode.getExpiresAt());
+        System.out.println("   Current time: " + LocalDateTime.now());
+
         // Check if code is expired
         if (verificationCode.isExpired()) {
-            System.out.println("✗ CODE VERIFICATION FAILED: Code expired for email: " + email);
-            System.out.println("  Expired at: " + verificationCode.getExpiresAt());
-            System.out.println("  Current time: " + LocalDateTime.now());
+            System.out.println("❌ Code has expired");
             verificationCodeRepository.delete(verificationCode);
-            System.out.println("===========================================");
             return false;
         }
-        
-        // Code is valid
-        System.out.println("✓ CODE VERIFICATION SUCCESSFUL for email: " + email);
-        if (deleteAfterVerification) {
-            verificationCodeRepository.delete(verificationCode);
-            System.out.println("  Code deleted (one-time use)");
-        } else {
-            System.out.println("  Code kept for reuse (valid for 24 hours)");
-        }
-        System.out.println("===========================================");
+
+        System.out.println("✅ Code is valid and not expired");
+        // Code is valid - delete it (one-time use)
+        verificationCodeRepository.delete(verificationCode);
+        System.out.println("✅ Code deleted after successful verification (one-time use)");
         return true;
     }
-    
+
     // Remove expired codes (cleanup job - runs every hour)
     @Scheduled(fixedRate = 3600000) // 1 hour
     @Transactional
     public void cleanupExpiredCodes() {
         verificationCodeRepository.deleteExpiredCodes(LocalDateTime.now());
     }
-    
+
     // Remove code for specific email
     @Transactional
     public void removeCode(String email) {
         verificationCodeRepository.deleteByEmail(email);
     }
 }
-

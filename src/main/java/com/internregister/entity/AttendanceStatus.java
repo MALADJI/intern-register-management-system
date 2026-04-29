@@ -1,11 +1,10 @@
 package com.internregister.entity;
 
 public enum AttendanceStatus {
+    SIGNED_IN,
+    SIGNED_OUT,
     PRESENT,
     ABSENT,
-    LATE,
-    REMOTE,
-    SIGNED_IN,
-    SIGNED_OUT
+    NOT_SIGNED_OUT,
+    ON_LEAVE
 }
-

@@ -17,7 +17,7 @@ public class RateLimitingService {
     private final Map<String, Long> lockoutUntil = new ConcurrentHashMap<>();
     
     private static final int MAX_LOGIN_ATTEMPTS = 5;
-    private static final long LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+    private static final long LOCKOUT_DURATION_MS = 60 * 1000; // 60 seconds (1 minute)
     
     /**
      * Check if IP is locked out

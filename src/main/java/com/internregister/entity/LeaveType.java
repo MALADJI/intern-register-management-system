@@ -1,12 +1,11 @@
 package com.internregister.entity;
 
 public enum LeaveType {
-    SICK,
     ANNUAL,
-    CASUAL,
+    SICK,
+    PERSONAL,
     EMERGENCY,
-    OTHER,
-    UNPAID,
-    STUDY
+    CASUAL,
+    OTHER
 }
 

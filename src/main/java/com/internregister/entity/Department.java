@@ -22,6 +22,8 @@ public class Department {
 
     private String name;
 
+    private Boolean active = true;
+
     private java.time.LocalDateTime createdAt;
     private java.time.LocalDateTime updatedAt;
     @PrePersist
@@ -42,4 +44,9 @@ public class Department {
     @ToString.Exclude
     @JsonIgnoreProperties({"department", "interns"})
     private List<Supervisor> supervisors;
+
+    @OneToMany(mappedBy = "department", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @ToString.Exclude
+    @JsonIgnoreProperties({"department"})
+    private List<com.internregister.entity.Field> fields;
 }
